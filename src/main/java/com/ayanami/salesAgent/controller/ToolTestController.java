@@ -1,9 +1,6 @@
 package com.ayanami.salesAgent.controller;
 
-import com.ayanami.salesAgent.tool.ChartGeneratorTool;
-import com.ayanami.salesAgent.tool.SalesQueryTool;
-import com.ayanami.salesAgent.tool.SalesSummaryTool;
-import com.ayanami.salesAgent.tool.SalesTrendTool;
+import com.ayanami.salesAgent.tool.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,6 +13,7 @@ public class ToolTestController {
     private final SalesSummaryTool salesSummaryTool;
     private final SalesTrendTool salesTrendTool;
     private final ChartGeneratorTool chartGeneratorTool;
+    private final AnomalyDetectionTool anomalyDetectionTool;
 
     // -------- 工具一 --------
     record QueryRequest(String startDate, String endDate,
@@ -90,5 +88,10 @@ public class ToolTestController {
     public String pieChart(@RequestBody PieChartRequest req) {
         return chartGeneratorTool.generatePieChart(
                 req.dimension(), req.startDate(), req.endDate(), req.title());
+    }
+    // -------- 工具五 --------
+    @PostMapping("/detect-anomalies")
+    public String detectAnomalies() {
+        return anomalyDetectionTool.detectAllAnomalies();
     }
 }
