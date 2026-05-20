@@ -61,7 +61,7 @@ public class SalesQueryService {
                 .filter(o -> o.getStatus().equals("COMPLETED"))
                 .filter(o -> !o.getOrderDate().isBefore(start) && !o.getOrderDate().isAfter(end))
                 .map(SalesOrder::getAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+                .reduce(BigDecimal.ZERO, BigDecimal::add);//初始值为0，将取到的amount全部相加，最后返回总和
     }
 
     // ============================================================
@@ -168,10 +168,10 @@ public class SalesQueryService {
         if (previous == null || previous.compareTo(BigDecimal.ZERO) == 0) {
             return null; // 上期为零，无法计算
         }
-        return current.subtract(previous)
-                .divide(previous, 4, RoundingMode.HALF_UP)
-                .multiply(BigDecimal.valueOf(100))
-                .setScale(2, RoundingMode.HALF_UP);
+        return current.subtract(previous)//当前值-前值=差额
+                .divide(previous, 4, RoundingMode.HALF_UP)//差额/前值=增长率（保留四位小数，四舍五入）
+                .multiply(BigDecimal.valueOf(100))//乘以100变成百分比形式
+                .setScale(2, RoundingMode.HALF_UP);//保留两位小数，四舍五入
     }
 
     // ============================================================
