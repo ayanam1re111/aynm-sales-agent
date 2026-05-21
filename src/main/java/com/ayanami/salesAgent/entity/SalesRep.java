@@ -30,6 +30,9 @@ public class SalesRep {
     @Column(length = 100)
     private String email;
 
+    @Column(name="password",length=20,unique=true)
+    private String password;
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 

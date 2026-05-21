@@ -68,4 +68,6 @@ public interface SalesAgent {
             3. 不要用代码块（```）包裹，直接输出原始字符串。
             """)
     TokenStream chatStream(@MemoryId String sessionId, @UserMessage String message, @V("today") String today);
+
+
 }

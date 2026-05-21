@@ -134,6 +134,7 @@ sa-token:
   is-log: false
 
 # Actuator
+#开启 Spring Boot 项目的监控功能，并只对外暴露 health、info、metrics 三个监控接口
 management:
   endpoints:
     web:
@@ -152,8 +153,8 @@ sales-agent:
 
 logging:
   level:
-    com.jichi.salesAgent: DEBUG
-    dev.langchain4j: INFO
+    com.ayanami.salesAgent: DEBUG
+    dev.langchain4j: DEBUG
 app:
   auth:
     enabled: false
