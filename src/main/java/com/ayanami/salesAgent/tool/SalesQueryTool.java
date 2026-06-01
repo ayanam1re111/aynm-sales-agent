@@ -2,6 +2,7 @@ package com.ayanami.salesAgent.tool;
 
 
 import com.ayanami.salesAgent.entity.SalesOrder;
+import com.ayanami.salesAgent.security.UserContext;
 import com.ayanami.salesAgent.service.SalesQueryService;
 import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
@@ -45,6 +46,15 @@ public class SalesQueryTool {
                 }
             }
 
+            // SALES_MANAGER 未指定区域时默认自己的区域
+            if (regionId == null) {
+                regionId = UserContext.getEnforcedRegionId();
+            }
+
+            // 权限检查：大区访问
+            String regionError = UserContext.checkRegionAccess(regionId);
+            if (regionError != null) return regionError;
+
             // 销售员姓名转 ID
             Long repId = null;
             if (repName != null && !repName.isBlank()) {
@@ -53,6 +63,10 @@ public class SalesQueryTool {
                     return "未找到销售员：" + repName + "，请确认姓名是否正确";
                 }
             }
+
+            // 权限检查：销售员访问
+            String repError = UserContext.checkRepAccess(repId);
+            if (repError != null) return repError;
            //根据销售员ID和大区ID查订单
             List<SalesOrder> orders = queryService.queryOrders(repId, regionId, start, end);
 

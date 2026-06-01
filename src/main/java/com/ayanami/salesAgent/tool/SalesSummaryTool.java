@@ -3,6 +3,7 @@ package com.ayanami.salesAgent.tool;
 import com.ayanami.salesAgent.dto.ProductSalesDTO;
 import com.ayanami.salesAgent.dto.RegionSalesDTO;
 import com.ayanami.salesAgent.dto.RepSalesDTO;
+import com.ayanami.salesAgent.security.UserContext;
 import com.ayanami.salesAgent.service.SalesQueryService;
 import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
@@ -39,10 +40,39 @@ public class SalesSummaryTool {
         try {
             LocalDate start = LocalDate.parse(startDate);
             LocalDate end = LocalDate.parse(endDate);
+
+            // 解析大区名称 → ID
+            Long regionId = null;
+            if (regionName != null && !regionName.isBlank()) {
+                regionId = queryService.getRegionIdByName(regionName);
+                if (regionId == null) {
+                    return "未找到大区：" + regionName + "，请确认大区名称是否正确（华东区/华南区/华北区/西南区）";
+                }
+            }
+
+            // SALES_MANAGER 未指定区域时默认自己的区域
+            if (regionId == null) {
+                regionId = UserContext.getEnforcedRegionId();
+            }
+
+            // 权限检查
+            String regionError = UserContext.checkRegionAccess(regionId);
+            if (regionError != null) return regionError;
+
             //对于负数和过大数进行兜底
             int n = Math.min(Math.max(topN, 1), 20);
-           //拿到所有销售员销售列表
-            List<RepSalesDTO> reps = queryService.queryRepRanking(start, end, n);
+
+            // 按大区查询或全量查询
+            List<RepSalesDTO> reps;
+            String regionLabel;
+            if (regionId != null) {
+                reps = queryService.queryRepRankingByRegion(regionId, start, end, n);
+                regionLabel = queryService.getRegionName(regionId);
+            } else {
+                reps = queryService.queryRepRanking(start, end, n);
+                regionLabel = null;
+            }
+
             if (reps.isEmpty()) {
                 return "该时段内暂无销售数据";
             }
@@ -50,7 +80,7 @@ public class SalesSummaryTool {
             StringBuilder sb = new StringBuilder();
             sb.append(String.format("销售员业绩排名（%s 至 %s%s）：\n\n",
                     startDate, endDate,
-                    regionName != null && !regionName.isBlank() ? "，" + regionName : "，全公司"));
+                    regionLabel != null ? "，" + regionLabel : "，全公司"));
 
             for (int i = 0; i < reps.size(); i++) {
                 RepSalesDTO rep = reps.get(i);
@@ -82,7 +112,22 @@ public class SalesSummaryTool {
             LocalDate start = LocalDate.parse(startDate);
             LocalDate end = LocalDate.parse(endDate);
 
-            List<RegionSalesDTO> regions = queryService.queryRegionRanking(start, end);
+            // 权限检查
+            String regionError = UserContext.checkRegionAccess(null);
+            if (regionError != null) return regionError;
+
+            // SALES_MANAGER 只能看自己大区的数据
+            Long enforcedRegionId = UserContext.getEnforcedRegionId();
+            List<RegionSalesDTO> regions;
+            if (enforcedRegionId != null) {
+                // 经理级别：只查询自己大区的数据
+                BigDecimal totalAmount = queryService.queryTotalAmount(enforcedRegionId, start, end);
+                String regionName = queryService.getRegionName(enforcedRegionId);
+                RegionSalesDTO dto = new RegionSalesDTO(enforcedRegionId, regionName, totalAmount, 0, BigDecimal.ZERO);
+                regions = List.of(dto);
+            } else {
+                regions = queryService.queryRegionRanking(start, end);
+            }
             if (regions.isEmpty()) {
                 return "该时段内暂无数据";
             }
@@ -128,6 +173,13 @@ public class SalesSummaryTool {
         try {
             LocalDate start = LocalDate.parse(startDate);
             LocalDate end = LocalDate.parse(endDate);
+
+            // SALES_REP 不能查看产品排名
+            UserContext.UserInfo user = UserContext.get();
+            if (user != null && "SALES_REP".equals(user.role())) {
+                return "您没有权限查看产品销售排名数据";
+            }
+
             boolean isWorst = topN < 0;
             int n = Math.min(Math.abs(topN), 20);
 
@@ -188,6 +240,15 @@ public class SalesSummaryTool {
                     return "未找到大区：" + regionName;
                 }
             }
+
+            // SALES_MANAGER 未指定区域时默认自己的区域
+            if (regionId == null) {
+                regionId = UserContext.getEnforcedRegionId();
+            }
+
+            // 权限检查
+            String regionError = UserContext.checkRegionAccess(regionId);
+            if (regionError != null) return regionError;
 
             BigDecimal totalAmount = queryService.queryTotalAmount(regionId, start, end);
 

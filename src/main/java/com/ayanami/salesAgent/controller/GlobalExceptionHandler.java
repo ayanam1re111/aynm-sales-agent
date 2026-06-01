@@ -1,5 +1,6 @@
 package com.ayanami.salesAgent.controller;
 
+import cn.dev33.satoken.exception.NotLoginException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -21,6 +22,17 @@ public class GlobalExceptionHandler {
                 .map(err -> err.getField() + ": " + err.getDefaultMessage())
                 .findFirst().orElse("参数校验失败");//getField():返回校验失败的字段名称
         return ResponseEntity.badRequest().body(msg);
+    }
+
+    /**
+     * 处理未登录请求
+     * @param e
+     * @return
+     */
+    @ExceptionHandler(NotLoginException.class)
+    public ResponseEntity<String> handleNotLogin(NotLoginException e){
+        log.warn("用户未登录或token已过期：{}",e.getMessage());
+        return ResponseEntity.status(401).body("未登录，请先登录");
     }
 
     /**

@@ -1,5 +1,6 @@
 package com.ayanami.salesAgent.controller;
 
+import cn.dev33.satoken.stp.StpUtil;
 import com.ayanami.salesAgent.agent.SalesAgent;
 import com.ayanami.salesAgent.memory.MysqlChatMemoryStore;
 
@@ -26,10 +27,15 @@ public class SalesAgentController {
 
     @PostMapping("/chat")
     public ResponseEntity<ChatResponse> chat(@Valid @RequestBody ChatRequest request) {
-        log.info("接收请求: sessionId={}, message={}", request.sessionId(), request.message());
+        Long repId = StpUtil.getLoginIdAsLong();
+        String repName = StpUtil.getSession().getString("username");
+        String role = StpUtil.getSession().getString("role");
+        log.info("接收请求: sessionId={}, message={}, repId={}, repName={}, role={}",
+                request.sessionId(), request.message(), repId, repName, role);
         long start = System.currentTimeMillis();
 
-        String reply = salesAgent.chat(request.sessionId(), request.message(), LocalDate.now().toString());
+        String reply = salesAgent.chat(request.sessionId(), request.message(),
+                LocalDate.now().toString(), repId, repName, role);
 
         long duration = System.currentTimeMillis() - start;
         log.info("请求完成: sessionId={}, durationMs={}", request.sessionId(), duration);

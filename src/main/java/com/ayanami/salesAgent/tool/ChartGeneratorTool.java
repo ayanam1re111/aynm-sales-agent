@@ -1,9 +1,11 @@
 package com.ayanami.salesAgent.tool;
 
+import com.ayanami.salesAgent.dto.RepSalesDTO;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ayanami.salesAgent.dto.MonthlyTrendDTO;
 import com.ayanami.salesAgent.dto.ProductSalesDTO;
 import com.ayanami.salesAgent.dto.RegionSalesDTO;
+import com.ayanami.salesAgent.security.UserContext;
 import com.ayanami.salesAgent.service.SalesQueryService;
 import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
@@ -37,6 +39,15 @@ public class ChartGeneratorTool {
         try {
             Long regionId = regionName != null && !regionName.isBlank()
                     ? queryService.getRegionIdByName(regionName) : null;
+
+            // SALES_MANAGER 未指定区域时默认自己的区域
+            if (regionId == null) {
+                regionId = UserContext.getEnforcedRegionId();
+            }
+
+            // 权限检查
+            String regionError = UserContext.checkRegionAccess(regionId);
+            if (regionError != null) return regionError;
 
             List<MonthlyTrendDTO> data = queryService.queryMonthlyTrend(regionId, Math.min(months, 24));
             if (data.isEmpty()) {
@@ -85,17 +96,36 @@ public class ChartGeneratorTool {
             LocalDate start = LocalDate.parse(startDate);
             LocalDate end = LocalDate.parse(endDate);
 
+            // 权限检查
+            String regionError = UserContext.checkRegionAccess(null);
+            if (regionError != null) return regionError;
+
+            Long enforcedRegionId = UserContext.getEnforcedRegionId();
+
             List<String> names;
             List<Number> values;
 
             if ("region".equals(dimension)) {
-                List<RegionSalesDTO> regions = queryService.queryRegionRanking(start, end);
-                names = regions.stream().map(RegionSalesDTO::regionName).toList();
-                values = regions.stream()
-                        .map(r -> (Number) r.totalAmount().longValue()).toList();
+                if (enforcedRegionId != null) {
+                    // SALES_MANAGER：只显示自己大区的数据
+                    BigDecimal totalAmount = queryService.queryTotalAmount(enforcedRegionId, start, end);
+                    String rName = queryService.getRegionName(enforcedRegionId);
+                    names = List.of(rName);
+                    values = List.of((Number) totalAmount.longValue());
+                } else {
+                    List<RegionSalesDTO> regions = queryService.queryRegionRanking(start, end);
+                    names = regions.stream().map(RegionSalesDTO::regionName).toList();
+                    values = regions.stream()
+                            .map(r -> (Number) r.totalAmount().longValue()).toList();
+                }
             } else {
-                List<com.ayanami.salesAgent.dto.RepSalesDTO> reps =
-                        queryService.queryRepRanking(start, end, 10);
+                // rep 维度：根据大区过滤
+                List<RepSalesDTO> reps;
+                if (enforcedRegionId != null) {
+                    reps = queryService.queryRepRankingByRegion(enforcedRegionId, start, end, 10);
+                } else {
+                    reps = queryService.queryRepRanking(start, end, 10);
+                }
                 names = reps.stream().map(r -> r.repName()).toList();
                 values = reps.stream()
                         .map(r -> (Number) r.totalAmount().longValue()).toList();
@@ -140,16 +170,32 @@ public class ChartGeneratorTool {
             LocalDate start = LocalDate.parse(startDate);
             LocalDate end = LocalDate.parse(endDate);
 
+            // 权限检查
+            String regionError = UserContext.checkRegionAccess(null);
+            if (regionError != null) return regionError;
+
+            Long enforcedRegionId = UserContext.getEnforcedRegionId();
+
             List<Map<String, Object>> pieData;
 
             if ("region".equals(dimension)) {
-                List<RegionSalesDTO> regions = queryService.queryRegionRanking(start, end);
-                pieData = regions.stream().map(r -> {
+                if (enforcedRegionId != null) {
+                    // SALES_MANAGER：只显示自己大区的数据
+                    BigDecimal totalAmount = queryService.queryTotalAmount(enforcedRegionId, start, end);
+                    String rName = queryService.getRegionName(enforcedRegionId);
                     Map<String, Object> item = new LinkedHashMap<>();
-                    item.put("name", r.regionName());
-                    item.put("value", r.totalAmount().longValue());
-                    return item;
-                }).toList();
+                    item.put("name", rName);
+                    item.put("value", totalAmount.longValue());
+                    pieData = List.of(item);
+                } else {
+                    List<RegionSalesDTO> regions = queryService.queryRegionRanking(start, end);
+                    pieData = regions.stream().map(r -> {
+                        Map<String, Object> item = new LinkedHashMap<>();
+                        item.put("name", r.regionName());
+                        item.put("value", r.totalAmount().longValue());
+                        return item;
+                    }).toList();
+                }
             } else {
                 // 按品类汇总（需要 Service 层支持，这里简化实现）
                 List<ProductSalesDTO> products = queryService.queryProductRanking(start, end, 100);

@@ -1,5 +1,6 @@
 package com.ayanami.salesAgent.controller;
 
+import cn.dev33.satoken.stp.StpUtil;
 import com.ayanami.salesAgent.agent.SalesAgent;
 import dev.langchain4j.service.TokenStream;
 import jakarta.validation.Valid;
@@ -24,11 +25,17 @@ public class SalesAgentStreamController {
     @PostMapping(value = "/chat/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)//produces...声明返回SSE流式事件流
     public Flux<ServerSentEvent<String>> chatStream(@Valid @RequestBody ChatRequest request) {
 
-        log.info("流式请求: sessionId={}", request.sessionId());
+        Long repId = StpUtil.getLoginIdAsLong();
+        String repName = StpUtil.getSession().getString("username");
+        String role = StpUtil.getSession().getString("role");
+
+        log.info("流式请求: sessionId={}, repId={}, repName={}, role={}",
+                request.sessionId(), repId, repName, role);
 
         return Flux.create(sink -> {
             //调用aiagent
-            salesAgent.chatStream(request.sessionId(), request.message(), LocalDate.now().toString())
+            salesAgent.chatStream(request.sessionId(), request.message(),
+                    LocalDate.now().toString(), repId, repName, role)
                     // 模型每【推送一次流】，这里就执行一次
                     // 每次推送的内容 = token（模型返回的一段最小流数据块）
                     // 推送频率 = 模型生成速度 + 网络

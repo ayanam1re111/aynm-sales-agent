@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS sa_sales_rep (
     role       VARCHAR(20)  NOT NULL DEFAULT 'SALES_REP'
     COMMENT '角色：SALES_REP/SALES_MANAGER/SALES_DIRECTOR',
     email      VARCHAR(100) DEFAULT NULL COMMENT '邮箱',
+    password   VARCHAR(20)  DEFAULT NULL COMMENT '登录密码',
     created_at DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     KEY idx_region (region_id)

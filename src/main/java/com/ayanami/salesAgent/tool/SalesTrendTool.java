@@ -1,6 +1,7 @@
 package com.ayanami.salesAgent.tool;
 
 import com.ayanami.salesAgent.dto.MonthlyTrendDTO;
+import com.ayanami.salesAgent.security.UserContext;
 import com.ayanami.salesAgent.service.SalesQueryService;
 import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
@@ -61,6 +62,15 @@ public class SalesTrendTool {
                 return "未找到大区：" + regionName;
             }
 
+            // SALES_MANAGER 未指定区域时默认自己的区域
+            if (regionId == null) {
+                regionId = UserContext.getEnforcedRegionId();
+            }
+
+            // 权限检查
+            String regionError = UserContext.checkRegionAccess(regionId);
+            if (regionError != null) return regionError;
+
             BigDecimal currentAmount = queryService.queryTotalAmount(regionId, cStart, cEnd);
             BigDecimal prevAmount = queryService.queryTotalAmount(regionId, pStart, pEnd);
             //计算环比
@@ -120,6 +130,15 @@ public class SalesTrendTool {
                 return "未找到大区：" + regionName;
             }
 
+            // SALES_MANAGER 未指定区域时默认自己的区域
+            if (regionId == null) {
+                regionId = UserContext.getEnforcedRegionId();
+            }
+
+            // 权限检查
+            String regionError = UserContext.checkRegionAccess(regionId);
+            if (regionError != null) return regionError;
+
             BigDecimal thisYear = queryService.queryTotalAmount(regionId, start, end);
             BigDecimal lastYear = queryService.queryTotalAmount(regionId, prevStart, prevEnd);
             BigDecimal growthRate = queryService.calcGrowthRate(thisYear, lastYear);
@@ -160,6 +179,15 @@ public class SalesTrendTool {
         try {
             int m = Math.min(Math.max(months, 1), 24);
             Long regionId = resolveRegionId(regionName);
+
+            // SALES_MANAGER 未指定区域时默认自己的区域
+            if (regionId == null) {
+                regionId = UserContext.getEnforcedRegionId();
+            }
+
+            // 权限检查
+            String regionError = UserContext.checkRegionAccess(regionId);
+            if (regionError != null) return regionError;
 
             List<MonthlyTrendDTO> trend = queryService.queryMonthlyTrend(regionId, m);
             if (trend.isEmpty()) {

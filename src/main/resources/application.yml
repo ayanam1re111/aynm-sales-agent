@@ -157,4 +157,4 @@ logging:
     dev.langchain4j: DEBUG
 app:
   auth:
-    enabled: false
+    enabled: true

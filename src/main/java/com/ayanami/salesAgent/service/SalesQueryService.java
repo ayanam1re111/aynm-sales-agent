@@ -6,6 +6,7 @@ import com.ayanami.salesAgent.dto.*;
 import com.ayanami.salesAgent.entity.SalesOrder;
 import com.ayanami.salesAgent.entity.SalesRep;
 import com.ayanami.salesAgent.repository.*;
+import com.ayanami.salesAgent.security.UserContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -38,6 +39,20 @@ public class SalesQueryService {
      */
     public List<SalesOrder> queryOrders(Long repId, Long regionId,
                                          LocalDate start, LocalDate end) {
+        UserContext.UserInfo currentUser = UserContext.get();
+
+        if (currentUser != null) {
+            if ("SALES_REP".equals(currentUser.role())) {
+                // 普通销售员只能查自己的订单
+                repId = currentUser.repId();
+            } else if ("SALES_MANAGER".equals(currentUser.role())) {
+                // 主管只能查本大区（若传入的 regionId 不是自己管辖的大区，强制覆盖）
+                if (regionId == null || !regionId.equals(currentUser.regionId())) {
+                    regionId = currentUser.regionId();
+                }
+            }
+            // SALES_DIRECTOR：不限制，查询范围由传入参数决定
+        }
         if (repId != null) {
             return orderRepository.findByRepIdAndOrderDateBetween(repId, start, end);
         }
@@ -89,6 +104,33 @@ public class SalesQueryService {
 
             String regionName = regionNameMap.getOrDefault(rep.getRegionId(), "未知");
             // 这里 orderCount 需要单独查，简化处理用 0
+            result.add(new RepSalesDTO(repId, rep.getName(), rep.getRegionId(),
+                    regionName, total, 0));
+
+            if (result.size() >= topN) break;
+        }
+        return result;
+    }
+
+    /**
+     * 按大区查询销售员业绩排名（带姓名、大区信息）
+     */
+    public List<RepSalesDTO> queryRepRankingByRegion(Long regionId, LocalDate start, LocalDate end, int topN) {
+        List<Object[]> raw = orderRepository.findRepRankingByRegion(regionId, start, end);
+
+        Map<Long, SalesRep> repMap = repRepository.findAll().stream()
+                .collect(Collectors.toMap(SalesRep::getId, r -> r));
+        Map<Long, String> regionNameMap = regionRepository.findAll().stream()
+                .collect(Collectors.toMap(r -> r.getId(), r -> r.getName()));
+
+        List<RepSalesDTO> result = new ArrayList<>();
+        for (Object[] row : raw) {
+            Long repId = ((Number) row[0]).longValue();
+            BigDecimal total = new BigDecimal(row[1].toString());
+            SalesRep rep = repMap.get(repId);
+            if (rep == null) continue;
+
+            String regionName = regionNameMap.getOrDefault(rep.getRegionId(), "未知");
             result.add(new RepSalesDTO(repId, rep.getName(), rep.getRegionId(),
                     regionName, total, 0));
 
@@ -185,6 +227,10 @@ public class SalesQueryService {
         return orderRepository.findLastOrderDateByProduct(productId);
     }
 
+    public LocalDate queryLastOrderDateByRegion(Long productId, Long regionId) {
+        return orderRepository.findLastOrderDateByProductAndRegion(productId,regionId);
+    }
+
     /**
      * 查询大区在指定时段内的订单数
      */
@@ -197,6 +243,10 @@ public class SalesQueryService {
      */
     public List<Object[]> queryRefundRates(LocalDate start, LocalDate end) {
         return orderRepository.findRefundRateByRep(start, end);
+    }
+    //按大区过滤
+    public List<Object[]> queryRefundRatesByRegion(LocalDate start, LocalDate end, Long filterRegionId) {
+        return orderRepository.findRefundRateByRepAndRegion(start, end, filterRegionId);
     }
 
     // ============================================================
@@ -226,5 +276,17 @@ public class SalesQueryService {
                 .map(SalesRep::getId)
                 .orElse(null);
     }
-    
+
+
+    public BigDecimal queryTotalAmountByRep(Long repid, LocalDate prevStart, LocalDate prevEnd) {
+        return orderRepository.sumAmountByRep(repid, prevStart, prevEnd);
+    }
+
+    public long queryRefundCountByRep(Long repId, LocalDate start, LocalDate end) {
+        return orderRepository.countRefundedByRep(repId, start, end);
+    }
+
+    public long queryOrderCountByRep(Long repId, LocalDate start, LocalDate end) {
+        return orderRepository.countByRepId(repId, start, end);
+    }
 }

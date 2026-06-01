@@ -92,6 +92,6 @@ public class ToolTestController {
     // -------- 工具五 --------
     @PostMapping("/detect-anomalies")
     public String detectAnomalies() {
-        return anomalyDetectionTool.detectAllAnomalies();
+        return anomalyDetectionTool.detectAllAnomalies(null);
     }
 }

@@ -32,25 +32,25 @@ INSERT INTO sa_sales_region (id, name) VALUES
 -- ============================================================
 -- 销售员数据（每区 3 人，含 1 名主管；另有 1 名全国总监）
 -- ============================================================
-INSERT INTO sa_sales_rep (id, name, region_id, role, email) VALUES
+INSERT INTO sa_sales_rep (id, name, region_id, role, email, password) VALUES
 -- 华东区
-(1,  '李明',   1, 'SALES_MANAGER',  'liming@jichi.com'),
-(2,  '张伟',   1, 'SALES_REP',      'zhangwei@jichi.com'),
-(3,  '王芳',   1, 'SALES_REP',      'wangfang@jichi.com'),
+(1,  '李明',   1, 'SALES_MANAGER',  'liming@jichi.com',    '123456'),
+(2,  '张伟',   1, 'SALES_REP',      'zhangwei@jichi.com',  '123456'),
+(3,  '王芳',   1, 'SALES_REP',      'wangfang@jichi.com',  '123456'),
 -- 华南区
-(4,  '陈强',   2, 'SALES_MANAGER',  'chenqiang@jichi.com'),
-(5,  '刘洋',   2, 'SALES_REP',      'liuyang@jichi.com'),
-(6,  '赵雪',   2, 'SALES_REP',      'zhaoxue@jichi.com'),
+(4,  '陈强',   2, 'SALES_MANAGER',  'chenqiang@jichi.com', '123456'),
+(5,  '刘洋',   2, 'SALES_REP',      'liuyang@jichi.com',   '123456'),
+(6,  '赵雪',   2, 'SALES_REP',      'zhaoxue@jichi.com',   '123456'),
 -- 华北区
-(7,  '孙磊',   3, 'SALES_MANAGER',  'sunlei@jichi.com'),
-(8,  '张磊',   3, 'SALES_REP',      'zhanglei@jichi.com'),
-(9,  '周丽',   3, 'SALES_REP',      'zhouli@jichi.com'),
+(7,  '孙磊',   3, 'SALES_MANAGER',  'sunlei@jichi.com',    '123456'),
+(8,  '张磊',   3, 'SALES_REP',      'zhanglei@jichi.com',  '123456'),
+(9,  '周丽',   3, 'SALES_REP',      'zhouli@jichi.com',    '123456'),
 -- 西南区
-(10, '吴刚',   4, 'SALES_MANAGER',  'wugang@jichi.com'),
-(11, '郑华',   4, 'SALES_REP',      'zhenghua@jichi.com'),
-(12, '林敏',   4, 'SALES_REP',      'linmin@jichi.com'),
+(10, '吴刚',   4, 'SALES_MANAGER',  'wugang@jichi.com',    '123456'),
+(11, '郑华',   4, 'SALES_REP',      'zhenghua@jichi.com',  '123456'),
+(12, '林敏',   4, 'SALES_REP',      'linmin@jichi.com',    '123456'),
 -- 全国总监
-(13, '黄总',   1, 'SALES_DIRECTOR', 'huang@jichi.com');
+(13, '黄总',   1, 'SALES_DIRECTOR', 'huang@jichi.com',     '123456');
 
 -- ============================================================
 -- 产品数据（4 个品类，20 个 SKU；id=6 为异常 SKU）
