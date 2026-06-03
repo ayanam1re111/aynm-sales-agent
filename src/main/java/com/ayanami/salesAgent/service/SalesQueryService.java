@@ -9,6 +9,7 @@ import com.ayanami.salesAgent.repository.*;
 import com.ayanami.salesAgent.security.UserContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -86,6 +87,9 @@ public class SalesQueryService {
     /**
      * 销售员业绩排名（带姓名、大区信息）
      */
+    // 排名数据缓存 5 分钟
+    @Cacheable(value = "rep-ranking",
+            key = "#start.toString() + '_' + #end.toString() + '_' + #topN")
     public List<RepSalesDTO> queryRepRanking(LocalDate start, LocalDate end, int topN) {
         List<Object[]> raw = orderRepository.findRepRanking(start, end);
 
@@ -115,6 +119,8 @@ public class SalesQueryService {
     /**
      * 按大区查询销售员业绩排名（带姓名、大区信息）
      */
+    @Cacheable(value = "region-ranking",
+            key = "#start.toString() + '_' + #end.toString()")
     public List<RepSalesDTO> queryRepRankingByRegion(Long regionId, LocalDate start, LocalDate end, int topN) {
         List<Object[]> raw = orderRepository.findRepRankingByRegion(regionId, start, end);
 
@@ -158,6 +164,8 @@ public class SalesQueryService {
     /**
      * 产品销售排名
      */
+    @Cacheable(value = "monthly-trend",
+            key = "(#regionId == null ? 'all' : #regionId.toString()) + '_' + #months")
     public List<ProductSalesDTO> queryProductRanking(LocalDate start, LocalDate end, int topN) {
         //查出商品ID，总销量，总销售额，按照销售量从大到小排名
         List<Object[]> raw = orderRepository.findProductRanking(start, end);
@@ -191,6 +199,8 @@ public class SalesQueryService {
     /**
      * 月度趋势数据（近 N 个月）
      */
+    // 大区名称 → ID 映射缓存（几乎不变）
+    @Cacheable(value = "region-meta", key = "#regionName")
     public List<MonthlyTrendDTO> queryMonthlyTrend(Long regionId, int months) {
         LocalDate end = LocalDate.now();
         LocalDate start = end.minusMonths(months).withDayOfMonth(1);

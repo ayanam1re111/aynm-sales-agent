@@ -3,6 +3,7 @@ package com.ayanami.salesAgent.tool;
 import com.ayanami.salesAgent.dto.ProductSalesDTO;
 import com.ayanami.salesAgent.dto.RegionSalesDTO;
 import com.ayanami.salesAgent.dto.RepSalesDTO;
+import com.ayanami.salesAgent.security.ToolInputValidator;
 import com.ayanami.salesAgent.security.UserContext;
 import com.ayanami.salesAgent.service.SalesQueryService;
 import dev.langchain4j.agent.tool.P;
@@ -22,6 +23,7 @@ import java.util.List;
 public class SalesSummaryTool {
 
     private final SalesQueryService queryService;
+    private final ToolInputValidator validator;  // 注入校验器
 
     /**
      * 销售员业绩排名
@@ -37,9 +39,14 @@ public class SalesSummaryTool {
         log.info("工具调用-getTopReps: start={}, end={}, region={}, topN={}",
                 startDate, endDate, regionName, topN);
 
+        LocalDate start = LocalDate.parse(validator.validateDate(startDate));
+        LocalDate end = LocalDate.parse(validator.validateDate(endDate));
+        String validRegion = validator.validateRegionName(regionName);  // 白名单校验
+
+
         try {
-            LocalDate start = LocalDate.parse(startDate);
-            LocalDate end = LocalDate.parse(endDate);
+//            LocalDate start = LocalDate.parse(startDate);
+//            LocalDate end = LocalDate.parse(endDate);
 
             // 解析大区名称 → ID
             Long regionId = null;

@@ -10,7 +10,7 @@ spring:
     redis:
       host: 127.0.0.1
       port: 6379
-      password: ${REDIS_PWD:}    # 如果 Redis 设了密码就打开这行
+      password: ${REDIS_PWD:}
       database: 0
 
   # 数据库package com.jichi.salesAgent.entity;
