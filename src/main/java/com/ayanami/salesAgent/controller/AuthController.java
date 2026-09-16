@@ -10,8 +10,6 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 import java.util.Optional;
 
-import static reactor.netty.http.HttpConnectionLiveness.log;
-
 @RestController
 @RequestMapping("/auth")
 @RequiredArgsConstructor
@@ -28,8 +26,6 @@ public class AuthController {
             return ResponseEntity.badRequest().body("用户不存在");
         }
         SalesRep rep = repOpt.get();
-        log.info("查询到的用户:{}", rep);
-        log.info("数据库密码:{}", rep.getPassword());
         if(!rep.getPassword().equals(request.password())){
             return ResponseEntity.badRequest().body("密码错误");
         }

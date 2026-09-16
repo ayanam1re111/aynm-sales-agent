@@ -1,5 +1,6 @@
 package com.ayanami.salesAgent.agent;
 
+import com.ayanami.salesAgent.config.ToolMetrics;
 import com.ayanami.salesAgent.memory.MysqlChatMemoryStore;
 import com.ayanami.salesAgent.tool.*;
 import dev.langchain4j.memory.ChatMemory;
@@ -27,6 +28,7 @@ public class SalesAgentConfig {
     private final ChartGeneratorTool chartGeneratorTool;
     private final AnomalyDetectionTool anomalyDetectionTool;
     private final MysqlChatMemoryStore chatMemoryStore;   // 注入持久化存储
+    private final ToolMetrics toolMetrics;                // 工具耗时指标
 
     @Bean
     public SalesAgent salesAgent() {
@@ -38,14 +40,18 @@ public class SalesAgentConfig {
                        salesTrendTool,
                        chartGeneratorTool,
                        anomalyDetectionTool)
-                .beforeToolExecution(exec ->
-                        log.info("▶ 工具调用开始 | 工具：{} | 参数：{}",
-                                exec.request().name(),
-                                exec.request().arguments()))
-                .afterToolExecution(exec ->
-                        log.info("◀ 工具调用完成 | 工具：{} | 结果长度：{} 字符",
-                                exec.request().name(),
-                                exec.result() != null ? exec.result().length() : 0))
+                .beforeToolExecution(exec -> {
+                    toolMetrics.start();
+                    log.info("▶ 工具调用开始 | 工具：{} | 参数：{}",
+                            exec.request().name(),
+                            exec.request().arguments());
+                })
+                .afterToolExecution(exec -> {
+                    log.info("◀ 工具调用完成 | 工具：{} | 结果长度：{} 字符",
+                            exec.request().name(),
+                            exec.result() != null ? exec.result().length() : 0);
+                    toolMetrics.finish(exec.request().name());
+                })
                 .chatMemoryProvider(memoryId ->
                         MessageWindowChatMemory.builder()
                                 .id(memoryId)
