@@ -120,7 +120,7 @@ public class SalesQueryService {
      * 按大区查询销售员业绩排名（带姓名、大区信息）
      */
     @Cacheable(value = "region-ranking",
-            key = "#start.toString() + '_' + #end.toString()")
+            key = "#regionId + '_' + #start.toString() + '_' + #end.toString() + '_' + #topN")
     public List<RepSalesDTO> queryRepRankingByRegion(Long regionId, LocalDate start, LocalDate end, int topN) {
         List<Object[]> raw = orderRepository.findRepRankingByRegion(regionId, start, end);
 
@@ -164,8 +164,8 @@ public class SalesQueryService {
     /**
      * 产品销售排名
      */
-    @Cacheable(value = "monthly-trend",
-            key = "(#regionId == null ? 'all' : #regionId.toString()) + '_' + #months")
+    @Cacheable(value = "product-ranking",
+            key = "#start.toString() + '_' + #end.toString() + '_' + #topN")
     public List<ProductSalesDTO> queryProductRanking(LocalDate start, LocalDate end, int topN) {
         //查出商品ID，总销量，总销售额，按照销售量从大到小排名
         List<Object[]> raw = orderRepository.findProductRanking(start, end);
@@ -192,6 +192,31 @@ public class SalesQueryService {
         return result;
     }
 
+    /**
+     * 产品销售排名（限定大区）
+     */
+    @Cacheable(value = "product-ranking",
+            key = "#regionId + '_' + #start.toString() + '_' + #end.toString() + '_' + #topN")
+    public List<ProductSalesDTO> queryProductRankingByRegion(Long regionId, LocalDate start,
+                                                             LocalDate end, int topN) {
+        List<Object[]> raw = orderRepository.findProductRankingByRegion(regionId, start, end);
+        Map<Long, com.ayanami.salesAgent.entity.Product> productMap = productRepository.findAll().stream()
+                .collect(Collectors.toMap(p -> p.getId(), p -> p));
+        List<ProductSalesDTO> result = new ArrayList<>();
+
+        for (Object[] row : raw) {
+            Long productId = ((Number) row[0]).longValue();
+            BigDecimal total = new BigDecimal(row[1].toString());
+            Integer qty = ((Number) row[2]).intValue();
+            com.ayanami.salesAgent.entity.Product p = productMap.get(productId);
+            if (p == null) continue;
+            result.add(new ProductSalesDTO(productId, p.getSkuCode(), p.getName(),
+                    p.getCategory(), total, qty));
+            if (result.size() >= topN) break;
+        }
+        return result;
+    }
+
     // ============================================================
     // 趋势分析
     // ============================================================
@@ -199,8 +224,9 @@ public class SalesQueryService {
     /**
      * 月度趋势数据（近 N 个月）
      */
-    // 大区名称 → ID 映射缓存（几乎不变）
-    @Cacheable(value = "region-meta", key = "#regionName")
+    // 趋势数据按大区区分，regionId 为 null 表示全公司
+    @Cacheable(value = "monthly-trend",
+            key = "(#regionId == null ? 'all' : #regionId.toString()) + '_' + #months")
     public List<MonthlyTrendDTO> queryMonthlyTrend(Long regionId, int months) {
         LocalDate end = LocalDate.now();
         LocalDate start = end.minusMonths(months).withDayOfMonth(1);

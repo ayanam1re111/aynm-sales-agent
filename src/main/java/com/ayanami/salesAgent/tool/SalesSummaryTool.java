@@ -41,7 +41,7 @@ public class SalesSummaryTool {
 
         LocalDate start = LocalDate.parse(validator.validateDate(startDate));
         LocalDate end = LocalDate.parse(validator.validateDate(endDate));
-        String validRegion = validator.validateRegionName(regionName);  // 白名单校验
+        validator.validateRegionName(regionName);  // 白名单校验
 
 
         try {
@@ -169,28 +169,45 @@ public class SalesSummaryTool {
      * 产品销售排名
      */
     @Tool("计算产品销售排名，找出畅销品或滞销品。适用于：最畅销产品、Top N SKU、" +
-         "哪个产品卖得最好/最差、各品类销售情况等场景。")
+         "哪个产品卖得最好/最差、各品类销售情况等场景。可按大区筛选或查全公司。")
     public String getTopProducts(
             @P("查询开始日期，格式 yyyy-MM-dd") String startDate,
             @P("查询结束日期，格式 yyyy-MM-dd") String endDate,
+            @P("大区名称，如：华东区。传 null 或空字符串表示查全公司") String regionName,
             @P("返回前 N 名，默认 10，最大 20。负数表示查最差的 N 名") int topN) {
 
-        log.info("工具调用-getTopProducts: start={}, end={}, topN={}", startDate, endDate, topN);
+        log.info("工具调用-getTopProducts: start={}, end={}, region={}, topN={}",
+                startDate, endDate, regionName, topN);
 
         try {
-            LocalDate start = LocalDate.parse(startDate);
-            LocalDate end = LocalDate.parse(endDate);
+            LocalDate start = LocalDate.parse(validator.validateDate(startDate));
+            LocalDate end = LocalDate.parse(validator.validateDate(endDate));
+            validator.validateRegionName(regionName);  // 白名单校验
 
-            // SALES_REP 不能查看产品排名
-            UserContext.UserInfo user = UserContext.get();
-            if (user != null && "SALES_REP".equals(user.role())) {
-                return "您没有权限查看产品销售排名数据";
+            // 解析大区名称 → ID
+            Long regionId = null;
+            if (regionName != null && !regionName.isBlank()) {
+                regionId = queryService.getRegionIdByName(regionName);
+                if (regionId == null) {
+                    return "未找到大区：" + regionName + "，请确认大区名称是否正确（华东区/华南区/华北区/西南区）";
+                }
             }
+
+            // 未指定大区时，SALES_MANAGER 被限定到自己管辖的大区
+            if (regionId == null) {
+                regionId = UserContext.getEnforcedRegionId();
+            }
+
+            // 权限检查：销售员无法查看大区级数据，经理无法查看其他大区
+            String regionError = UserContext.checkRegionAccess(regionId);
+            if (regionError != null) return regionError;
 
             boolean isWorst = topN < 0;
             int n = Math.min(Math.abs(topN), 20);
 
-            List<ProductSalesDTO> products = queryService.queryProductRanking(start, end, isWorst ? 999 : n);
+            List<ProductSalesDTO> products = regionId != null
+                    ? queryService.queryProductRankingByRegion(regionId, start, end, isWorst ? 999 : n)
+                    : queryService.queryProductRanking(start, end, isWorst ? 999 : n);
             if (products.isEmpty()) {
                 return "该时段内暂无产品销售数据";
             }
@@ -204,9 +221,11 @@ public class SalesSummaryTool {
                 products = products.subList(0, Math.min(n, products.size()));
             }
 
+            String regionLabel = regionId != null ? queryService.getRegionName(regionId) : null;
             StringBuilder sb = new StringBuilder();
-            sb.append(String.format("产品销售排名%s（%s 至 %s）：\n\n",
-                    isWorst ? "（最差）" : "（最佳）", startDate, endDate));
+            sb.append(String.format("产品销售排名%s（%s 至 %s%s）：\n\n",
+                    isWorst ? "（最差）" : "（最佳）", startDate, endDate,
+                    regionLabel != null ? "，" + regionLabel : "，全公司"));
 
             for (int i = 0; i < products.size(); i++) {
                 ProductSalesDTO p = products.get(i);
@@ -216,8 +235,10 @@ public class SalesSummaryTool {
             }
             return sb.toString();
 
-        } catch (DateTimeParseException e) {
-            return "日期格式错误，请使用 yyyy-MM-dd 格式";
+        } catch (IllegalArgumentException e) {
+            // 校验器抛出的原因足够具体（如「无效的大区名称：xxx，有效值为：…」），
+            // 原样返回给模型，它才能据此纠正参数重试
+            return e.getMessage();
         } catch (Exception e) {
             log.error("查询产品排名失败", e);
             return "查询产品数据时出现问题，请稍后重试";

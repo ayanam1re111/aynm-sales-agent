@@ -19,9 +19,6 @@ public interface SalesOrderRepository extends JpaRepository<SalesOrder, Long> {
     // 按大区查
     List<SalesOrder> findByRegionIdAndOrderDateBetween(Long regionId, LocalDate start, LocalDate end);
 
-    // 按产品查
-    List<SalesOrder> findByProductIdAndOrderDateBetween(Long productId, LocalDate start, LocalDate end);
-
     // 某大区某时段的完成订单总金额
     @Query("SELECT COALESCE(SUM(o.amount), 0) FROM SalesOrder o " +
            "WHERE o.regionId = :regionId AND o.status = 'COMPLETED' " +
@@ -69,6 +66,15 @@ public interface SalesOrderRepository extends JpaRepository<SalesOrder, Long> {
     List<Object[]> findProductRanking(@Param("start") LocalDate start,
                                        @Param("end") LocalDate end);
 
+    // 各产品销售排名（限定大区）
+    @Query("SELECT o.productId, SUM(o.amount) AS total, SUM(o.quantity) AS qty " +
+           "FROM SalesOrder o WHERE o.status = 'COMPLETED' AND o.regionId = :regionId " +
+           "AND o.orderDate BETWEEN :start AND :end " +
+           "GROUP BY o.productId ORDER BY total DESC")
+    List<Object[]> findProductRankingByRegion(@Param("regionId") Long regionId,
+                                               @Param("start") LocalDate start,
+                                               @Param("end") LocalDate end);
+
     // 月度汇总（用于趋势分析）
     @Query(value = "SELECT DATE_FORMAT(order_date, '%Y-%m') AS month, " +
                    "SUM(amount) AS total, COUNT(*) AS order_count " +
@@ -90,7 +96,7 @@ public interface SalesOrderRepository extends JpaRepository<SalesOrder, Long> {
             "WHERE o.productId = :productId AND o.regionId= :regionId AND o.status = 'COMPLETED'")
     LocalDate findLastOrderDateByProductAndRegion(@Param("productId") Long productId,
                                                   @Param ("regionId") Long regionId);
-    ;
+
     // 某销售员的退单率统计
     @Query("SELECT o.repId, " +
            "SUM(CASE WHEN o.status = 'REFUNDED' THEN 1 ELSE 0 END) AS refunded, " +

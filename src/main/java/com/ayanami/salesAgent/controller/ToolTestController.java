@@ -28,7 +28,7 @@ public class ToolTestController {
     // -------- 工具二 --------
     record RankRequest(String startDate, String endDate, String regionName, int topN) {}
     record RangeRequest(String startDate, String endDate) {}
-    record ProductRankRequest(String startDate, String endDate, int topN) {}
+    record ProductRankRequest(String startDate, String endDate, String regionName, int topN) {}
 
     @PostMapping("/top-reps")
     public String topReps(@RequestBody RankRequest req) {
@@ -43,7 +43,8 @@ public class ToolTestController {
 
     @PostMapping("/top-products")
     public String topProducts(@RequestBody ProductRankRequest req) {
-        return salesSummaryTool.getTopProducts(req.startDate(), req.endDate(), req.topN());
+        return salesSummaryTool.getTopProducts(
+                req.startDate(), req.endDate(), req.regionName(), req.topN());
     }
     // -------- 工具三 --------
     record MomRequest(String currentStart, String currentEnd,

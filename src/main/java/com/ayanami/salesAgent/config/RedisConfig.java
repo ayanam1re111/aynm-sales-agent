@@ -75,6 +75,7 @@ public class RedisConfig {
         cacheConfigs.put("rep-ranking",       defaultConfig.entryTtl(Duration.ofMinutes(5)));
         cacheConfigs.put("region-ranking",    defaultConfig.entryTtl(Duration.ofMinutes(5)));
         cacheConfigs.put("monthly-trend",     defaultConfig.entryTtl(Duration.ofMinutes(5)));
+        cacheConfigs.put("product-ranking",   defaultConfig.entryTtl(Duration.ofMinutes(5)));
         cacheConfigs.put("region-meta",       defaultConfig.entryTtl(Duration.ofMinutes(30)));
         cacheConfigs.put("anomaly-detection", defaultConfig.entryTtl(Duration.ofMinutes(2)));
 
