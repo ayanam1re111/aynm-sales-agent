@@ -108,7 +108,7 @@ Controller 层只负责解析调用者身份并转发，真正的推理在 `Sale
 
 **工具编排链路** —— 12 个 `@Tool` 分布在 5 个类，选哪个、按什么顺序由模型决定，服务端不写死报表分支；每个描述声明覆盖范围，`queryOrders` 另标注不适用场景，避免被拿去算排名或画图。
 
-**图表链路** —— 图表数据不经过模型转述。图表工具把 ECharts option 交给 `ChartPayloadCollector`，只回给模型一句提示；模型输出 `[[CHART]]` 占位符，Controller 在 `onToolExecuted` 中以独立的 `chart` 事件把原始 JSON 直接下发，前端按序替换占位符。让模型逐字复述 400 字符的 JSON 并不可靠 —— 实测会把 `series` 数组写成对象，前端只画得出空白画布 —— 换成占位符后模型只需输出 8 个字符，顺带省掉每次复述的数百个输出 token。前端保留旧的 `CHART_JSON:` 解析路径，历史会话照常渲染。
+**图表链路** —— 图表工具把 ECharts option 交给 `ChartPayloadCollector` 暂存、只回给模型一句提示，模型输出 `[[CHART]]` 占位符，Controller 在 `onToolExecuted` 中以独立的 `chart` 事件下发原始 option，前端按序替换；图表数据全程不经过模型，既避免转述失真，也省掉复述整段 JSON 的数百个输出 token。
 
 ## 🌐 环境要求
 

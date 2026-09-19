@@ -109,7 +109,7 @@ One question, three tools, no hard-coded branch:
 
 **Tool orchestration** — 12 `@Tool` methods across five classes, with the model choosing both the tool and the order and no reporting branch hard-coded; each description declares its scope, and `queryOrders` names what it should not be used for, which keeps it out of ranking and charting work.
 
-**Chart pipeline** — Chart data never passes through the model. The chart tools hand the ECharts option to a `ChartPayloadCollector` and return only a one-line notice; the model emits a `[[CHART]]` placeholder, and the controller pushes the raw JSON over a dedicated `chart` event from `onToolExecuted`, which the client substitutes back in order. Asking the model to reproduce a 400-character JSON verbatim is unreliable — it was observed flattening the `series` array into an object, leaving the client with nothing but a blank canvas — while a placeholder costs eight characters instead of several hundred output tokens. The client keeps the older `CHART_JSON:` path so existing conversations still render.
+**Chart pipeline** — The chart tools stash the ECharts option in a `ChartPayloadCollector` and hand the model only a one-line notice; the model emits a `[[CHART]]` placeholder, and the controller pushes the raw option over a dedicated `chart` event from `onToolExecuted`, which the client substitutes back in order. Chart data never reaches the model, ruling out transcription drift and saving the hundreds of output tokens a verbatim copy would cost.
 
 ## 🌐 Environment Requirements
 
