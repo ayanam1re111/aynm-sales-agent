@@ -1,5 +1,6 @@
 package com.ayanami.salesAgent.agent;
 
+import com.ayanami.salesAgent.config.PromptCompressor;
 import com.ayanami.salesAgent.config.ToolMetrics;
 import com.ayanami.salesAgent.memory.MysqlChatMemoryStore;
 import com.ayanami.salesAgent.tool.*;
@@ -10,6 +11,7 @@ import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.service.AiServices;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -29,17 +31,24 @@ public class SalesAgentConfig {
     private final AnomalyDetectionTool anomalyDetectionTool;
     private final MysqlChatMemoryStore chatMemoryStore;   // 注入持久化存储
     private final ToolMetrics toolMetrics;                // 工具耗时指标
+    private final PromptCompressor promptCompressor;      // 上下文压缩
+
+    /** 单次请求的连续工具调用上限 */
+    @Value("${sales-agent.tool.max-sequential-invocations:8}")
+    private int maxSequentialInvocations;
 
     @Bean
     public SalesAgent salesAgent() {
         return AiServices.builder(SalesAgent.class)
                 .chatModel(chatLanguageModel)
                 .streamingChatModel(streamingChatModel)
+                .chatRequestTransformer(promptCompressor::compress)
                 .tools(salesQueryTool,
                        salesSummaryTool,
                        salesTrendTool,
                        chartGeneratorTool,
                        anomalyDetectionTool)
+                .maxSequentialToolsInvocations(maxSequentialInvocations)
                 .beforeToolExecution(exec -> {
                     toolMetrics.start();
                     log.info("▶ 工具调用开始 | 工具：{} | 参数：{}",

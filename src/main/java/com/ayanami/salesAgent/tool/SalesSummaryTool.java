@@ -85,13 +85,14 @@ public class SalesSummaryTool {
             }
            //转成自然语言
             StringBuilder sb = new StringBuilder();
-            sb.append(String.format("销售员业绩排名（%s 至 %s%s）：\n\n",
+            sb.append(String.format("销售员业绩排名（%s 至 %s%s）\n",
                     startDate, endDate,
                     regionLabel != null ? "，" + regionLabel : "，全公司"));
+            sb.append("口径：已完成订单，不含退单｜列：排名 销售员（大区） 销售额\n\n");
 
             for (int i = 0; i < reps.size(); i++) {
                 RepSalesDTO rep = reps.get(i);
-                sb.append(String.format("第 %d 名：%s（%s）  销售额：¥%,.0f\n",
+                sb.append(String.format("%d. %s（%s） ¥%,.0f\n",
                         i + 1, rep.repName(), rep.regionName(), rep.totalAmount()));
             }
             return sb.toString();
@@ -145,13 +146,14 @@ public class SalesSummaryTool {
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
 
             StringBuilder sb = new StringBuilder();
-            sb.append(String.format("大区业绩排名（%s 至 %s）：\n\n", startDate, endDate));
+            sb.append(String.format("大区业绩排名（%s 至 %s）\n", startDate, endDate));
+            sb.append("口径：已完成订单，不含退单｜列：排名 大区 销售额 占比\n\n");
 
             for (int i = 0; i < regions.size(); i++) {
                 RegionSalesDTO region = regions.get(i);
                 double ratio = grandTotal.compareTo(BigDecimal.ZERO) > 0
                         ? region.totalAmount().doubleValue() / grandTotal.doubleValue() * 100 : 0;
-                sb.append(String.format("第 %d 名：%s  销售额：¥%,.0f  占比：%.1f%%\n",
+                sb.append(String.format("%d. %s ¥%,.0f %.1f%%\n",
                         i + 1, region.regionName(), region.totalAmount(), ratio));
             }
             sb.append(String.format("\n全公司合计：¥%,.0f", grandTotal));
@@ -223,21 +225,21 @@ public class SalesSummaryTool {
 
             String regionLabel = regionId != null ? queryService.getRegionName(regionId) : null;
             StringBuilder sb = new StringBuilder();
-            sb.append(String.format("产品销售排名%s（%s 至 %s%s）：\n\n",
+            sb.append(String.format("产品销售排名%s（%s 至 %s%s）\n",
                     isWorst ? "（最差）" : "（最佳）", startDate, endDate,
                     regionLabel != null ? "，" + regionLabel : "，全公司"));
+            sb.append("口径：已完成订单，不含退单｜列：排名 产品[SKU] 品类 销售额 数量\n\n");
 
             for (int i = 0; i < products.size(); i++) {
                 ProductSalesDTO p = products.get(i);
-                sb.append(String.format("第 %d 名：%s [%s]  品类：%s  销售额：¥%,.0f  数量：%d 件\n",
+                sb.append(String.format("%d. %s [%s] %s ¥%,.0f %d件\n",
                         i + 1, p.productName(), p.skuCode(), p.category(),
                         p.totalAmount(), p.totalQuantity()));
             }
             return sb.toString();
 
         } catch (IllegalArgumentException e) {
-            // 校验器抛出的原因足够具体（如「无效的大区名称：xxx，有效值为：…」），
-            // 原样返回给模型，它才能据此纠正参数重试
+            // 返回校验器的具体原因
             return e.getMessage();
         } catch (Exception e) {
             log.error("查询产品排名失败", e);
@@ -280,7 +282,7 @@ public class SalesSummaryTool {
 
             BigDecimal totalAmount = queryService.queryTotalAmount(regionId, start, end);
 
-            return String.format("销售额汇总（%s 至 %s%s）：\n总销售额：¥%,.0f",
+            return String.format("销售额汇总（%s 至 %s%s）\n口径：已完成订单，不含退单\n总销售额：¥%,.0f",
                     startDate, endDate,
                     regionName != null && !regionName.isBlank() ? "，" + regionName : "，全公司",
                     totalAmount);

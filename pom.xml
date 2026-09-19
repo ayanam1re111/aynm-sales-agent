@@ -83,7 +83,7 @@
             <groupId>dev.langchain4j</groupId>
             <artifactId>langchain4j-spring-boot-starter</artifactId>
         </dependency>
-        <!-- OpenAI 模块——通义千问提供 OpenAI 兼容接口，通过 base-url 指向 DashScope -->
+        <!-- OpenAI 模块——DeepSeek 提供 OpenAI 兼容接口，通过 base-url 指向 api.deepseek.com -->
         <dependency>
             <groupId>dev.langchain4j</groupId>
             <artifactId>langchain4j-open-ai-spring-boot-starter</artifactId>

@@ -43,19 +43,19 @@ spring:
         format_sql: true
     defer-datasource-initialization: false  # 等 JPA 初始化后再执行 SQL 脚本
 
-# LangChain4j OpenAI 兼容接口 → DashScope
+# LangChain4j OpenAI 兼容接口 → DeepSeek
 langchain4j:
   open-ai:
     chat-model:
-      base-url: https://dashscope.aliyuncs.com/compatible-mode/v1
+      base-url: https://api.deepseek.com/v1
       api-key: ${API_KEY}
-      model-name: qwen-max
+      model-name: deepseek-chat
       temperature: 0.1          # 数据分析场景用低温度，减少随机性
       max-tokens: 2048
     streaming-chat-model:
-      base-url: https://dashscope.aliyuncs.com/compatible-mode/v1
+      base-url: https://api.deepseek.com/v1
       api-key: ${API_KEY}
-      model-name: qwen-max
+      model-name: deepseek-chat
       temperature: 0.1
       max-tokens: 2048
 
@@ -86,6 +86,12 @@ sales-agent:
   tool:
     anomaly-threshold-days: 5
     trend-drop-threshold: 0.3
+    # 单次请求的连续工具调用上限
+    max-sequential-invocations: 8
+
+  # 单条工具返回的字符上限，超出即截断
+  prompt:
+    tool-result-max-chars: 1200
 
 logging:
   level:

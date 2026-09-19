@@ -97,15 +97,16 @@ public class SalesQueryTool {
         sb.append(String.format("订单查询结果（%s 至 %s%s）：\n",
                 startDate, endDate,
                 regionName != null ? "，" + regionName : ""));
-        sb.append(String.format("共找到 %d 条订单", total));
+        sb.append("口径：全部订单，含退单与取消");
+        sb.append(String.format("｜共 %d 条", total));
         if (orders.size() < total) {
-            sb.append(String.format("，以下显示前 %d 条", orders.size()));
+            sb.append(String.format("，显示前 %d 条", orders.size()));
         }
-        sb.append("\n\n");
+        sb.append("\n列：订单号 日期 销售员 客户 金额 状态\n\n");
 
         for (SalesOrder order : orders) {
             String repName = queryService.getRepName(order.getRepId());
-            sb.append(String.format("- 订单号：%s | 日期：%s | 销售员：%s | 客户：%s | 金额：¥%,.0f | 状态：%s\n",
+            sb.append(String.format("%s %s %s %s ¥%,.0f %s\n",
                     order.getOrderNo(),
                     order.getOrderDate(),
                     repName,
@@ -122,7 +123,7 @@ public class SalesQueryTool {
         long completedCount = orders.stream()
                 .filter(o -> "COMPLETED".equals(o.getStatus())).count();
 
-        sb.append(String.format("\n小计：完成订单 %d 笔，金额合计 ¥%,.0f", completedCount, completedTotal));
+        sb.append(String.format("\n小计（仅已完成）：%d 笔 ¥%,.0f", completedCount, completedTotal));
         return sb.toString();
     }
 

@@ -80,7 +80,7 @@ public class SalesTrendTool {
 //            当前周期（2025-05-01 至 2025-05-31）：¥1230000
 //            对比周期（2025-04-01 至 2025-04-30）：¥1000000
             StringBuilder sb = new StringBuilder();
-            sb.append(String.format("环比分析（%s%s）：\n\n",
+            sb.append(String.format("环比分析（%s%s）\n口径：已完成订单，不含退单\n\n",
                     regionName != null && !regionName.isBlank() ? regionName + "，" : "全公司，",
                     ""));
             sb.append(String.format("当前周期（%s 至 %s）：¥%,.0f\n", cStart, cEnd, currentAmount));
@@ -144,7 +144,7 @@ public class SalesTrendTool {
             BigDecimal growthRate = queryService.calcGrowthRate(thisYear, lastYear);
 
             StringBuilder sb = new StringBuilder();
-            sb.append(String.format("同比分析（%s）：\n\n",
+            sb.append(String.format("同比分析（%s）\n口径：已完成订单，不含退单\n\n",
                     regionName != null && !regionName.isBlank() ? regionName : "全公司"));
             sb.append(String.format("今年（%s 至 %s）：¥%,.0f\n", start, end, thisYear));
             sb.append(String.format("去年（%s 至 %s）：¥%,.0f\n", prevStart, prevEnd, lastYear));
@@ -195,7 +195,7 @@ public class SalesTrendTool {
             }
 
             StringBuilder sb = new StringBuilder();
-            sb.append(String.format("月度销售趋势（近 %d 个月%s）：\n\n",
+            sb.append(String.format("月度销售趋势（近 %d 个月%s）\n口径：已完成订单，不含退单｜列：月份 销售额 订单数\n\n",
                     m, regionName != null && !regionName.isBlank() ? "，" + regionName : "，全公司"));
 
             for (int i = 0; i < trend.size(); i++) {
@@ -210,7 +210,7 @@ public class SalesTrendTool {
                                 : String.format(" (↓%.1f%%)", rate.abs());
                     }
                 }
-                sb.append(String.format("%s：¥%,.0f  订单数：%d%s\n",
+                sb.append(String.format("%s ¥%,.0f %d单%s\n",
                         dto.month(), dto.totalAmount(), dto.orderCount(), changeStr));
             }
 

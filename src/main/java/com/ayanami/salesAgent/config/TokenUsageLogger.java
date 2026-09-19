@@ -35,8 +35,7 @@ public class TokenUsageLogger implements ChatModelListener {//AI模型监听器�
             inputTokenCounter.increment(input);
             outputTokenCounter.increment(output);
 
-            // 估算费用（qwen-max 价格：输入 0.04 元/千Token，输出 0.12 元/千Token）
-            double cost = input * 0.04 / 1000.0 + output * 0.12 / 1000.0;
+          double cost = input * 2.0 / 1_000_000.0 + output * 8.0 / 1_000_000.0;
             log.info("Token 用量 | 输入：{} | 输出：{} | 本次费用约：¥{}",
                     input, output, String.format("%.4f", cost));
         }

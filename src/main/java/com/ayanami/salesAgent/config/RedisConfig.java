@@ -4,6 +4,8 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.jsontype.impl.LaissezFaireSubTypeValidator;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import io.micrometer.core.instrument.MeterRegistry;
+import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -59,7 +61,7 @@ public class RedisConfig {
     }
     //Spring自动缓存@Cacheable
     @Bean
-    public RedisCacheManager cacheManager(RedisConnectionFactory factory) {
+    public CacheManager cacheManager(RedisConnectionFactory factory, MeterRegistry meterRegistry) {
         GenericJackson2JsonRedisSerializer jsonSerializer =
                 new GenericJackson2JsonRedisSerializer(redisObjectMapper());
         //默认缓存配置：5分钟过期
@@ -79,9 +81,12 @@ public class RedisConfig {
         cacheConfigs.put("region-meta",       defaultConfig.entryTtl(Duration.ofMinutes(30)));
         cacheConfigs.put("anomaly-detection", defaultConfig.entryTtl(Duration.ofMinutes(2)));
 
-        return RedisCacheManager.builder(factory)
+        RedisCacheManager redisCacheManager = RedisCacheManager.builder(factory)
                 .cacheDefaults(defaultConfig)
                 .withInitialCacheConfigurations(cacheConfigs)
                 .build();
+
+        // 包一层统计缓存命中率
+        return new MetricsCacheManager(redisCacheManager, meterRegistry);
     }
 }
