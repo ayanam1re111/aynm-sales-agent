@@ -5,9 +5,11 @@ import com.ayanami.salesAgent.dto.RegionSalesDTO;
 import com.ayanami.salesAgent.dto.RepSalesDTO;
 import com.ayanami.salesAgent.security.ToolInputValidator;
 import com.ayanami.salesAgent.security.UserContext;
+import com.ayanami.salesAgent.security.UserSessionRegistry;
 import com.ayanami.salesAgent.service.SalesQueryService;
 import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
+import dev.langchain4j.invocation.InvocationContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -34,8 +36,10 @@ public class SalesSummaryTool {
             @P("查询开始日期，格式 yyyy-MM-dd") String startDate,
             @P("查询结束日期，格式 yyyy-MM-dd") String endDate,
             @P("大区名称，如：华东区。传 null 或空字符串表示查全公司") String regionName,
-            @P("返回前 N 名，默认 5，最大 20") int topN) {
+            @P("返回前 N 名，默认 5，最大 20") int topN,
+            InvocationContext context) {
 
+        UserSessionRegistry.bindToCurrentThread(context);
         log.info("工具调用-getTopReps: start={}, end={}, region={}, topN={}",
                 startDate, endDate, regionName, topN);
 
@@ -112,8 +116,10 @@ public class SalesSummaryTool {
          "大区排行榜等场景。")
     public String getRegionRanking(
             @P("查询开始日期，格式 yyyy-MM-dd") String startDate,
-            @P("查询结束日期，格式 yyyy-MM-dd") String endDate) {
+            @P("查询结束日期，格式 yyyy-MM-dd") String endDate,
+            InvocationContext context) {
 
+        UserSessionRegistry.bindToCurrentThread(context);
         log.info("工具调用-getRegionRanking: start={}, end={}", startDate, endDate);
 
         try {
@@ -176,8 +182,10 @@ public class SalesSummaryTool {
             @P("查询开始日期，格式 yyyy-MM-dd") String startDate,
             @P("查询结束日期，格式 yyyy-MM-dd") String endDate,
             @P("大区名称，如：华东区。传 null 或空字符串表示查全公司") String regionName,
-            @P("返回前 N 名，默认 10，最大 20。负数表示查最差的 N 名") int topN) {
+            @P("返回前 N 名，默认 10，最大 20。负数表示查最差的 N 名") int topN,
+            InvocationContext context) {
 
+        UserSessionRegistry.bindToCurrentThread(context);
         log.info("工具调用-getTopProducts: start={}, end={}, region={}, topN={}",
                 startDate, endDate, regionName, topN);
 
@@ -255,8 +263,10 @@ public class SalesSummaryTool {
     public String getSalesSummary(
             @P("查询开始日期，格式 yyyy-MM-dd") String startDate,
             @P("查询结束日期，格式 yyyy-MM-dd") String endDate,
-            @P("大区名称，如：华东区。传 null 表示查全公司") String regionName) {
+            @P("大区名称，如：华东区。传 null 表示查全公司") String regionName,
+            InvocationContext context) {
 
+        UserSessionRegistry.bindToCurrentThread(context);
         log.info("工具调用-getSalesSummary: start={}, end={}, region={}", startDate, endDate, regionName);
 
         try {

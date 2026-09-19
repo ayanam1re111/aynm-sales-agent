@@ -43,6 +43,9 @@ public class SalesAgentConfig {
                 .chatModel(chatLanguageModel)
                 .streamingChatModel(streamingChatModel)
                 .chatRequestTransformer(promptCompressor::compress)
+                // 身份还原不在这里做：systemMessageTransformer 实测跑在 Servlet 线程上，
+                // 写进去的 ThreadLocal 工具线程照样读不到。由各 @Tool 方法在
+                // 自己的执行线程上调用 UserSessionRegistry.bindToCurrentThread() 完成。
                 .tools(salesQueryTool,
                        salesSummaryTool,
                        salesTrendTool,

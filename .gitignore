@@ -33,6 +33,12 @@ target/
 *.log
 *.tmp
 
+### 前端 ###
+frontend/tsconfig.tsbuildinfo
+
+# 本地草稿区（设计稿源文件、截图脚本等，不参与构建）
+tmp/
+
 ### Eclipse ###
 .apt_generated
 .classpath

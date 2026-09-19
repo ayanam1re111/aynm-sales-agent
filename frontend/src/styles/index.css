@@ -1,0 +1,109 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* 没有这行，系统开暗色模式时浏览器会给 input/textarea 套上深色 UA 样式，
+       在浅色界面里非常突兀 */
+    color-scheme: light;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    margin: 0;
+    @apply font-sans text-body text-ink antialiased;
+    background: linear-gradient(160deg, #f4f7ff 0%, #eef4ff 100%);
+    overflow: hidden; /* 桌面端：滚动交给内部区域，页面本身不滚 */
+  }
+
+  /* 细滚动条，默认的在浅色玻璃面板里太抢眼 */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(98, 91, 246, 0.16);
+    border-radius: 4px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(98, 91, 246, 0.28);
+  }
+
+  /* 键盘焦点必须清晰可见 */
+  :focus-visible {
+    outline: 2px solid #625bf6;
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+}
+
+@layer components {
+  /* 玻璃层：背景 74% 白 + 模糊 */
+  .glass {
+    background: rgba(255, 255, 255, 0.74);
+    backdrop-filter: blur(16px) saturate(160%);
+    -webkit-backdrop-filter: blur(16px) saturate(160%);
+    border: 1px solid rgba(255, 255, 255, 0.7);
+  }
+
+  /*
+   * Agent 回答正文。后端输出是「纯文本 + 换行」，不是 Markdown，
+   * pre-wrap 是保留换行的关键；overflow-wrap 让超长的订单号能断行。
+   * tabular-nums 让排名里的金额逐行对齐，不会左右跳。
+   */
+  .agent-answer {
+    white-space: pre-wrap;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    font-size: 15px;
+    line-height: 1.75;
+    color: #1f2a60;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* 悬浮 Agent：固定在会话画布右下角、输入框上方，不随消息滚动 */
+  .agent-mascot {
+    position: absolute;
+    /*
+     * 素材是 1254×1254 的画布，小狗只占中间 1055px —— 可见宽度仅为元素宽的 84%，
+     * 左右还各留了 113/86px 透明边。所以下面给的是**元素宽**，不是小狗看上去的宽度：
+     * 设计稿里小狗约占视口宽 13.8%，除以 0.841 得 16.4vw。
+     * 右边距同理扣掉 86/1254 的右侧透明边，否则小狗会离右边缘太远。
+     */
+    width: clamp(196px, 16.4vw, 295px);
+    right: 22px;
+    bottom: 106px;
+    pointer-events: none;
+    z-index: 10;
+    filter: drop-shadow(0 14px 22px rgba(74, 102, 190, 0.18));
+    animation: agent-float 3.8s ease-in-out infinite;
+  }
+
+  /* 小于 1280px 隐藏全身形象，避免遮挡正文与图表 */
+  @media (max-width: 1279px) {
+    .agent-mascot {
+      display: none;
+    }
+  }
+}
+
+/* 用户偏好减少动效时，全部动画降级为静态 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

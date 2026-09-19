@@ -22,7 +22,7 @@ public class ToolTestController {
     @PostMapping("/query-orders")
     public String queryOrders(@RequestBody QueryRequest req) {
         return salesQueryTool.queryOrders(
-                req.startDate(), req.endDate(), req.regionName(), req.reqName(), req.limit());
+                req.startDate(), req.endDate(), req.regionName(), req.reqName(), req.limit(), null);
     }
 
     // -------- 工具二 --------
@@ -33,18 +33,18 @@ public class ToolTestController {
     @PostMapping("/top-reps")
     public String topReps(@RequestBody RankRequest req) {
         return salesSummaryTool.getTopReps(
-                req.startDate(), req.endDate(), req.regionName(), req.topN());
+                req.startDate(), req.endDate(), req.regionName(), req.topN(), null);
     }
 
     @PostMapping("/region-ranking")
     public String regionRanking(@RequestBody RangeRequest req) {
-        return salesSummaryTool.getRegionRanking(req.startDate(), req.endDate());
+        return salesSummaryTool.getRegionRanking(req.startDate(), req.endDate(), null);
     }
 
     @PostMapping("/top-products")
     public String topProducts(@RequestBody ProductRankRequest req) {
         return salesSummaryTool.getTopProducts(
-                req.startDate(), req.endDate(), req.regionName(), req.topN());
+                req.startDate(), req.endDate(), req.regionName(), req.topN(), null);
     }
     // -------- 工具三 --------
     record MomRequest(String currentStart, String currentEnd,
@@ -56,18 +56,18 @@ public class ToolTestController {
     public String monthOverMonth(@RequestBody MomRequest req) {
         return salesTrendTool.calcMonthOverMonth(
                 req.currentStart(), req.currentEnd(),
-                req.prevStart(), req.prevEnd(), req.regionName());
+                req.prevStart(), req.prevEnd(), req.regionName(), null);
     }
 
     @PostMapping("/year-over-year")
     public String yearOverYear(@RequestBody YoyRequest req) {
         return salesTrendTool.calcYearOverYear(
-                req.startDate(), req.endDate(), req.regionName());
+                req.startDate(), req.endDate(), req.regionName(), null);
     }
 
     @PostMapping("/monthly-trend")
     public String monthlyTrend(@RequestBody TrendRequest req) {
-        return salesTrendTool.getMonthlyTrend(req.months(), req.regionName());
+        return salesTrendTool.getMonthlyTrend(req.months(), req.regionName(), null);
     }
     // -------- 工具四 --------
     record LineChartRequest(int months, String regionName, String title) {}
@@ -76,23 +76,23 @@ public class ToolTestController {
 
     @PostMapping("/line-chart")
     public String lineChart(@RequestBody LineChartRequest req) {
-        return chartGeneratorTool.generateLineChart(req.months(), req.regionName(), req.title());
+        return chartGeneratorTool.generateLineChart(req.months(), req.regionName(), req.title(), null);
     }
 
     @PostMapping("/bar-chart")
     public String barChart(@RequestBody BarChartRequest req) {
         return chartGeneratorTool.generateBarChart(
-                req.dimension(), req.startDate(), req.endDate(), req.title());
+                req.dimension(), req.startDate(), req.endDate(), req.title(), null);
     }
 
     @PostMapping("/pie-chart")
     public String pieChart(@RequestBody PieChartRequest req) {
         return chartGeneratorTool.generatePieChart(
-                req.dimension(), req.startDate(), req.endDate(), req.title());
+                req.dimension(), req.startDate(), req.endDate(), req.title(), null);
     }
     // -------- 工具五 --------
     @PostMapping("/detect-anomalies")
     public String detectAnomalies() {
-        return anomalyDetectionTool.detectAllAnomalies(null);
+        return anomalyDetectionTool.detectAllAnomalies(null, null);
     }
 }

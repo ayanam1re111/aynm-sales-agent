@@ -8,9 +8,11 @@ import com.ayanami.salesAgent.repository.ProductRepository;
 import com.ayanami.salesAgent.repository.SalesRegionRepository;
 import com.ayanami.salesAgent.repository.SalesRepRepository;
 import com.ayanami.salesAgent.security.UserContext;
+import com.ayanami.salesAgent.security.UserSessionRegistry;
 import com.ayanami.salesAgent.service.SalesQueryService;
 import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
+import dev.langchain4j.invocation.InvocationContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -43,7 +45,10 @@ public class AnomalyDetectionTool {
             "销售员退单率异常、销售员业绩骤降。适用于：有没有异常、风险排查、预警检测等场景。" +
             "可指定大区名称（如 华东区）进行针对性检测，传 null 表示查全公司（仅总监可用）。")
     public String detectAllAnomalies(
-            @P("大区名称，如：华东区、华南区、华北区、西南区。传 null 或空字符串表示全公司（仅总监可用）") String regionName) {
+            @P("大区名称，如：华东区、华南区、华北区、西南区。传 null 或空字符串表示全公司（仅总监可用）") String regionName,
+            InvocationContext context) {
+
+        UserSessionRegistry.bindToCurrentThread(context);
 
         UserContext.UserInfo user = UserContext.get();
 

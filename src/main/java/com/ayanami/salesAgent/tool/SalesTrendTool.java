@@ -2,9 +2,11 @@ package com.ayanami.salesAgent.tool;
 
 import com.ayanami.salesAgent.dto.MonthlyTrendDTO;
 import com.ayanami.salesAgent.security.UserContext;
+import com.ayanami.salesAgent.security.UserSessionRegistry;
 import com.ayanami.salesAgent.service.SalesQueryService;
 import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
+import dev.langchain4j.invocation.InvocationContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -33,8 +35,10 @@ public class SalesTrendTool {
             @P("当前周期结束日期，格式 yyyy-MM-dd") String currentEnd,
             @P("对比周期开始日期，格式 yyyy-MM-dd。传 null 则自动计算上一个等长周期") String prevStart,
             @P("对比周期结束日期，格式 yyyy-MM-dd。传 null 则自动计算上一个等长周期") String prevEnd,
-            @P("大区名称，如：华东区。传 null 表示全公司") String regionName) {
+            @P("大区名称，如：华东区。传 null 表示全公司") String regionName,
+            InvocationContext context) {
 
+        UserSessionRegistry.bindToCurrentThread(context);
         log.info("工具调用-calcMonthOverMonth: current={}/{}, prev={}/{}, region={}",
                 currentStart, currentEnd, prevStart, prevEnd, regionName);
 
@@ -114,8 +118,10 @@ public class SalesTrendTool {
     public String calcYearOverYear(
             @P("查询开始日期，格式 yyyy-MM-dd（今年的日期）") String startDate,
             @P("查询结束日期，格式 yyyy-MM-dd（今年的日期）") String endDate,
-            @P("大区名称，如：华东区。传 null 表示全公司") String regionName) {
+            @P("大区名称，如：华东区。传 null 表示全公司") String regionName,
+            InvocationContext context) {
 
+        UserSessionRegistry.bindToCurrentThread(context);
         log.info("工具调用-calcYearOverYear: start={}, end={}, region={}", startDate, endDate, regionName);
 
         try {
@@ -172,8 +178,10 @@ public class SalesTrendTool {
          "销售走势、趋势是上升还是下降等场景。如果用户要画折线图，先调用此工具获取数据。")
     public String getMonthlyTrend(
             @P("查看近多少个月，如 6 表示近 6 个月，最大 24") int months,
-            @P("大区名称，如：华东区。传 null 表示全公司") String regionName) {
+            @P("大区名称，如：华东区。传 null 表示全公司") String regionName,
+            InvocationContext context) {
 
+        UserSessionRegistry.bindToCurrentThread(context);
         log.info("工具调用-getMonthlyTrend: months={}, region={}", months, regionName);
 
         try {

@@ -1,14 +1,17 @@
 package com.ayanami.salesAgent.tool;
 
+import com.ayanami.salesAgent.agent.ChartPayloadCollector;
 import com.ayanami.salesAgent.dto.RepSalesDTO;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ayanami.salesAgent.dto.MonthlyTrendDTO;
 import com.ayanami.salesAgent.dto.ProductSalesDTO;
 import com.ayanami.salesAgent.dto.RegionSalesDTO;
 import com.ayanami.salesAgent.security.UserContext;
+import com.ayanami.salesAgent.security.UserSessionRegistry;
 import com.ayanami.salesAgent.service.SalesQueryService;
 import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
+import dev.langchain4j.invocation.InvocationContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -24,16 +27,39 @@ import java.util.Map;
 @Slf4j
 public class ChartGeneratorTool {
 
+    /**
+     * 交给模型的不是 JSON 本体，只是一句「图已生成」。真正的 option 走
+     * ChartPayloadCollector → SSE 的 chart 事件直达前端，模型碰不到，也就改不坏。
+     */
+    private static final String CHART_MARKER =
+            "CHART_JSON:图表数据已生成。按系统提示的图表规则，在回复中输出 [[CHART]] 占位符，"
+            + "不要输出 JSON 本体。";
+
     private final SalesQueryService queryService;
+    private final ChartPayloadCollector chartCollector;
     private final ObjectMapper objectMapper = new ObjectMapper();
+
+    /**
+     * 把图表投递给收集器，返回给模型看的占位提示。
+     * 绕过模型直接调用工具时（调试接口 /test/tool）没有会话，退回老格式内联返回。
+     */
+    private String deliver(InvocationContext context, String json) {
+        if (context == null || context.chatMemoryId() == null) {
+            return "CHART_JSON:" + json;
+        }
+        chartCollector.add(String.valueOf(context.chatMemoryId()), json);
+        return CHART_MARKER;
+    }
 
     @Tool("生成销售趋势折线图的 ECharts JSON 数据。适用于：画折线图、趋势图、" +
          "月度变化图等可视化需求。返回的 JSON 可直接用于前端 ECharts 渲染。")
     public String generateLineChart(
             @P("近多少个月的数据，如 6 表示近 6 个月") int months,
             @P("大区名称，如：华东区。传 null 表示全公司") String regionName,
-            @P("图表标题，如：华东区近6个月销售趋势") String title) {
+            @P("图表标题，如：华东区近6个月销售趋势") String title,
+            InvocationContext context) {
 
+        UserSessionRegistry.bindToCurrentThread(context);
         log.info("工具调用-generateLineChart: months={}, region={}", months, regionName);
 
         try {
@@ -73,8 +99,7 @@ public class ChartGeneratorTool {
                     "itemStyle", Map.of("color", "#5470c6")
             )));
 
-            String json = objectMapper.writeValueAsString(option);
-            return "CHART_JSON:" + json;   // 前端识别 CHART_JSON: 前缀后提取 JSON 渲染
+            return deliver(context, objectMapper.writeValueAsString(option));
 
         } catch (Exception e) {
             log.error("生成折线图失败", e);
@@ -88,8 +113,10 @@ public class ChartGeneratorTool {
             @P("对比维度：region（按大区对比）或 rep（按销售员对比）") String dimension,
             @P("查询开始日期，格式 yyyy-MM-dd") String startDate,
             @P("查询结束日期，格式 yyyy-MM-dd") String endDate,
-            @P("图表标题") String title) {
+            @P("图表标题") String title,
+            InvocationContext context) {
 
+        UserSessionRegistry.bindToCurrentThread(context);
         log.info("工具调用-generateBarChart: dim={}, start={}, end={}", dimension, startDate, endDate);
 
         try {
@@ -147,8 +174,7 @@ public class ChartGeneratorTool {
                     "itemStyle", Map.of("color", "#91cc75")
             )));
 
-            String json = objectMapper.writeValueAsString(option);
-            return "CHART_JSON:" + json;
+            return deliver(context, objectMapper.writeValueAsString(option));
 
         } catch (Exception e) {
             log.error("生成柱状图失败", e);
@@ -162,8 +188,10 @@ public class ChartGeneratorTool {
             @P("饼图维度：region（大区占比）、category（品类占比）") String dimension,
             @P("查询开始日期，格式 yyyy-MM-dd") String startDate,
             @P("查询结束日期，格式 yyyy-MM-dd") String endDate,
-            @P("图表标题") String title) {
+            @P("图表标题") String title,
+            InvocationContext context) {
 
+        UserSessionRegistry.bindToCurrentThread(context);
         log.info("工具调用-generatePieChart: dim={}, start={}, end={}", dimension, startDate, endDate);
 
         try {
@@ -227,8 +255,7 @@ public class ChartGeneratorTool {
                             Map.of("shadowBlur", 10, "shadowOffsetX", 0, "shadowColor", "rgba(0,0,0,0.5)"))
             )));
 
-            String json = objectMapper.writeValueAsString(option);
-            return "CHART_JSON:" + json;
+            return deliver(context, objectMapper.writeValueAsString(option));
 
         } catch (Exception e) {
             log.error("生成饼图失败", e);

@@ -14,9 +14,19 @@ Translates natural language questions into multi-step tool invocation workflows 
 
 English · [简体中文](README.zh-CN.md)
 
-Architecture · Tech Stack · Features · Highlights · Requirements · Getting Started
+Screenshots · Architecture · Tech Stack · Features · Highlights · Requirements · Getting Started
 
 </div>
+
+## 📸 Screenshots
+
+![Sign-in page](docs/screenshots/01-login-en.webp)
+
+**Sign-in** — bilingual UI, one-click demo accounts for each role
+
+![Agent reply with a generated pie chart](docs/screenshots/02-chat-en.webp)
+
+**Chart generation** — the agent picks the tool, aggregates the data, and the chart renders inline in the reply
 
 ## 🏗 Architecture
 
@@ -95,13 +105,11 @@ One question, three tools, no hard-coded branch:
 
 ## 🔧 Technical Highlights
 
-**Authorization at the tool boundary** — The region-scoped tools check permissions inside the method body, in addition to the controller-level interceptor. The reason is specific to LLM applications: the caller no longer chooses the parameters, the model does, so an interceptor that only guards the HTTP entry point can be walked around by a prompt that names someone else's region. Each tool calls `getEnforcedRegionId()` before touching data, so a manager who omits the region argument is pinned to the region they own and never silently falls back to the whole company.
+**Tool authorization** — Visibility for the three roles is decided inside each `@Tool` method, with the controller checking only the login state; a tool resolves the region name, narrows scope with `getEnforcedRegionId()`, then decides with `checkRegionAccess()` — a manager omitting the argument stays in their own region, another region is refused, and a rep gets a refusal message.
 
-**Time semantics anchored in the prompt** — The system prompt injects the current date and maps "本月 / 上个月 / 本季度 / 近 N 个月" onto concrete date ranges. Without that anchor the model's reading of "last month" drifts between calls. This is the single change that made relative-date questions reliable.
+**Tool orchestration** — 12 `@Tool` methods across five classes, with the model choosing both the tool and the order and no reporting branch hard-coded; each description declares its scope, and `queryOrders` names what it should not be used for, which keeps it out of ranking and charting work.
 
-**Tool descriptions as the control surface** — With 12 tools across five classes, the model's choice is driven entirely by the descriptions it is handed. Every description states the cases it covers, and the most general one, `queryOrders`, also names the cases it should *not* be used for — which is what stops the model from reaching for it to compute a ranking or draw a chart. Tools return formatted prose, so the model can quote a result without re-parsing it.
-
-**Structured chart data through a prose-only channel** — The model emits prose, but a chart needs an ECharts option object. The chart tools emit `CHART_JSON:` followed by the complete option, and the prompt contract requires the model to pass it through verbatim; the client brace-matches the JSON back out of the reply.
+**Chart pipeline** — Chart data never passes through the model. The chart tools hand the ECharts option to a `ChartPayloadCollector` and return only a one-line notice; the model emits a `[[CHART]]` placeholder, and the controller pushes the raw JSON over a dedicated `chart` event from `onToolExecuted`, which the client substitutes back in order. Asking the model to reproduce a 400-character JSON verbatim is unreliable — it was observed flattening the `series` array into an object, leaving the client with nothing but a blank canvas — while a placeholder costs eight characters instead of several hundred output tokens. The client keeps the older `CHART_JSON:` path so existing conversations still render.
 
 ## 🌐 Environment Requirements
 
@@ -124,7 +132,7 @@ Tables and demo data are imported automatically on startup — `spring.sql.init`
 
 Both scripts are idempotent. Every table is created with `CREATE TABLE IF NOT EXISTS`, and `data.sql` clears the four business tables before re-inserting, so each startup reloads a clean demo dataset. `sa_chat_memory` is deliberately left alone, so conversation history survives a restart.
 
-> **The demo data is anchored to `CURDATE()`**, not to fixed dates. Whenever you run it, there are always seven months of history behind it, so trend and year-over-year queries have something to work with.
+> **The demo data is generated relative to `CURDATE()`.** Whenever you run it, there are always seven months of history behind it, so trend and year-over-year queries have something to work with.
 
 ### 2. Configure the connections
 
@@ -183,17 +191,19 @@ curl http://localhost:8087/actuator/health
 
 Then log in and ask something. `db/data.sql` seeds 13 accounts, all with password `123456`:
 
-| repId | Name | Role | Scope |
-| --- | --- | --- | --- |
-| 13 | 黄总 | `SALES_DIRECTOR` | Every region |
-| 1 | 李明 | `SALES_MANAGER` | 华东区 |
-| 2 | 张伟 | `SALES_REP` | Own records only |
+| repId | Role | Scope |
+| --- | --- | --- |
+| 13 | `SALES_DIRECTOR` | Every region |
+| 1 | `SALES_MANAGER` | East China |
+| 2 | `SALES_REP` | Own records only |
+
+> The application, its seed data and the agent's replies are all in Chinese. Region labels here are translated for readability; the repId is what you actually log in with.
 
 ```bash
 curl -X POST http://localhost:8087/auth/login \
   -H "Content-Type: application/json" \
   -d '{"repId":13,"password":"123456"}'
-# {"token":"<uuid>","username":"黄总","role":"SALES_DIRECTOR"}
+# {"token":"<uuid>","username":"<name>","role":"SALES_DIRECTOR"}
 ```
 
 Pass that token back in the `Authorization` header:
@@ -202,10 +212,10 @@ Pass that token back in the `Authorization` header:
 curl -X POST http://localhost:8087/agent/chat \
   -H "Content-Type: application/json" \
   -H "Authorization: <token>" \
-  -d '{"sessionId":"demo-1","message":"有没有异常？"}'
+  -d '{"sessionId":"demo-1","message":"Are there any anomalies?"}'
 ```
 
-> The seed data carries four deliberate anomalies — 华北区 has had no orders for 14 days, SKU-8821 none for 30, 张磊's volume collapses partway through the window, and 王芳's refund rate sits well above the threshold — so this question should return concrete findings; a plain "nothing detected" reply would signal a problem.
+> The seed data carries four deliberate anomalies — one region has had no orders for 14 days, one SKU none for 30, one rep's volume collapses partway through the window, and another rep's refund rate sits well above the threshold — so this question should return concrete findings; a plain "nothing detected" reply would signal a problem.
 
 ## 📌 Optional setup
 
